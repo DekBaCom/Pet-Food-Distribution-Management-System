@@ -27,4 +27,4 @@ binding = "UPLOADS"
 bucket_name = "pet-food-uploads"
 
 [vars]
-NEXTAUTH_URL = "https://pet-food-distribution-system.pages.dev"
+NEXTAUTH_URL = "https://pet-food-distribution-system.abdulloh-eg.workers.dev"
