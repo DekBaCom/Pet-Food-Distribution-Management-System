@@ -164,7 +164,7 @@ export default function RegisterPage() {
       photos.animals.forEach((f, i) => formData.append(`animal_${i}`, f));
 
       const res = await fetch("/api/registrations", { method: "POST", body: formData });
-      const json = await res.json();
+      const json = (await res.json()) as { error?: string; registrationId?: string };
       if (!res.ok) throw new Error(json.error || "เกิดข้อผิดพลาด");
       router.push(`/register/success?id=${json.registrationId}`);
     } catch (err: unknown) {

@@ -1,0 +1,30 @@
+name = "pet-food-distribution-system"
+main = ".open-next/worker.js"
+compatibility_date = "2025-10-01"
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+run_worker_first = true
+html_handling = "none"
+not_found_handling = "none"
+
+[placement]
+mode = "smart"
+
+[observability]
+enabled = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "pet-food-db"
+database_id = "f87d8e7d-368b-4c0f-863d-3505a9440ec3"
+migrations_dir = "./prisma/migrations"
+
+[[r2_buckets]]
+binding = "UPLOADS"
+bucket_name = "pet-food-uploads"
+
+[vars]
+NEXTAUTH_URL = "https://pet-food-distribution-system.pages.dev"

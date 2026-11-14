@@ -42,7 +42,7 @@ dev.db-journal
 *.db-journal
 
 # prisma
-prisma/migrations/
+prisma/seed-data.sql
 
 # uploads
 /public/uploads/*
@@ -51,6 +51,11 @@ prisma/migrations/
 # test results
 *.test-results
 test-results/
+
+# cloudflare / opennext
+.open-next/
+.wrangler/
+.dev.vars
 
 # claude worktrees
 .claude/

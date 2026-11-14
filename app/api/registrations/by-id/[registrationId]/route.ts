@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
-export async function GET(req: NextRequest, { params }: { params: { registrationId: string } }) {
+export async function GET(_req: NextRequest, context: { params: Promise<{ registrationId: string }> }) {
+  const { registrationId } = await context.params;
   const reg = await prisma.registration.findFirst({
     where: {
       OR: [
-        { registrationId: params.registrationId },
-        { phone: params.registrationId },
+        { registrationId },
+        { phone: registrationId },
       ],
     },
     include: {
