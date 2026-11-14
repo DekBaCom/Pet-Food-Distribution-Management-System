@@ -1,6 +1,4 @@
 import { nanoid } from "nanoid";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
 
 export interface UploadResult {
   url: string;
@@ -16,7 +14,7 @@ export async function uploadFile(
   const folder = options.folder ?? "uploads";
   const ext = extractExt(file, options.filename);
   const key = `${folder}/${new Date().toISOString().slice(0, 10)}/${nanoid(16)}${ext}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
+  const bytes = new Uint8Array(await file.arrayBuffer());
   const contentType = file.type || "application/octet-stream";
 
   try {
@@ -24,26 +22,30 @@ export async function uploadFile(
     const ctx = await getCloudflareContext({ async: true });
     const bucket = ctx?.env?.UPLOADS;
     if (bucket) {
-      await bucket.put(key, buffer, { httpMetadata: { contentType } });
+      await bucket.put(key, bytes, { httpMetadata: { contentType } });
       return {
         url: `/api/files/${encodeURIComponent(key)}`,
         key,
-        size: buffer.length,
+        size: bytes.length,
         contentType,
       };
     }
   } catch {
   }
 
+  // Local-dev fallback: write to public/ via dynamic import so Workers never
+  // tries to load fs at module scope.
+  const { writeFile, mkdir } = await import("fs/promises");
+  const { join } = await import("path");
   const localDir = join(process.cwd(), "public", folder, new Date().toISOString().slice(0, 10));
   await mkdir(localDir, { recursive: true });
   const localName = `${nanoid(16)}${ext}`;
-  await writeFile(join(localDir, localName), buffer);
+  await writeFile(join(localDir, localName), bytes);
   const localKey = `${folder}/${new Date().toISOString().slice(0, 10)}/${localName}`;
   return {
     url: `/${localKey}`,
     key: localKey,
-    size: buffer.length,
+    size: bytes.length,
     contentType,
   };
 }

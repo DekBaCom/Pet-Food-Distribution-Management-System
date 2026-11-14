@@ -3,8 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { generateSecureToken, generateRegistrationId, buildQRPayload } from "@/lib/qr";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
+import { uploadFile } from "@/lib/storage";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -62,28 +61,19 @@ export async function POST(req: NextRequest) {
     const registrationId = generateRegistrationId(count + 1);
     const secureToken = generateSecureToken();
 
-    // Handle file uploads
-    const uploadDir = path.join(process.cwd(), "public", "uploads");
-    await mkdir(uploadDir, { recursive: true });
-
+    // Handle file uploads (R2 on edge, local fallback in dev)
     const documents: { documentType: string; fileUrl: string; fileName: string; fileSize?: number; mimeType?: string }[] = [];
     const profileFile = formData.get("profile") as File | null;
-    if (profileFile) {
-      const bytes = await profileFile.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const filename = `${registrationId}-profile-${Date.now()}.${profileFile.name.split(".").pop()}`;
-      await writeFile(path.join(uploadDir, filename), buffer);
-      documents.push({ documentType: "PROFILE_PHOTO", fileUrl: `/uploads/${filename}`, fileName: profileFile.name, fileSize: profileFile.size, mimeType: profileFile.type });
+    if (profileFile && profileFile.size > 0) {
+      const uploaded = await uploadFile(profileFile, { folder: `registrations/${registrationId}`, filename: profileFile.name });
+      documents.push({ documentType: "PROFILE_PHOTO", fileUrl: uploaded.url, fileName: profileFile.name, fileSize: uploaded.size, mimeType: uploaded.contentType });
     }
 
     for (let i = 0; i < 5; i++) {
       const animalFile = formData.get(`animal_${i}`) as File | null;
-      if (animalFile) {
-        const bytes = await animalFile.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-        const filename = `${registrationId}-animal-${i}-${Date.now()}.${animalFile.name.split(".").pop()}`;
-        await writeFile(path.join(uploadDir, filename), buffer);
-        documents.push({ documentType: "ANIMAL_PHOTO", fileUrl: `/uploads/${filename}`, fileName: animalFile.name, fileSize: animalFile.size, mimeType: animalFile.type });
+      if (animalFile && animalFile.size > 0) {
+        const uploaded = await uploadFile(animalFile, { folder: `registrations/${registrationId}`, filename: animalFile.name });
+        documents.push({ documentType: "ANIMAL_PHOTO", fileUrl: uploaded.url, fileName: animalFile.name, fileSize: uploaded.size, mimeType: uploaded.contentType });
       }
     }
 
