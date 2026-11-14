@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PawPrint, LogIn, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/staff";
+  const callbackUrl = searchParams.get("callbackUrl");
+
+  function destinationForRole(role: string | undefined): string {
+    if (role === "SUPER_ADMIN" || role === "ADMIN") return "/admin";
+    if (role === "VIEWER") return "/admin";
+    return "/staff";
+  }
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -35,7 +41,9 @@ function LoginContent() {
       if (result?.error) {
         setError("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
       } else {
-        router.push(callbackUrl);
+        const session = await getSession();
+        const role = (session?.user as { role?: string } | undefined)?.role;
+        router.push(callbackUrl || destinationForRole(role));
         router.refresh();
       }
     } catch {
