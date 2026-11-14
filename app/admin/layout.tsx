@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { AdminSidebar } from "@/components/admin/sidebar";
 import { PawPrint } from "lucide-react";
+import { LogoutButton } from "@/components/auth/logout-button";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
@@ -24,7 +25,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <PawPrint className="h-5 w-5" />
             <span className="font-semibold text-sm">Admin Panel</span>
           </div>
-          <span className="text-sm text-gray-400">{session.user?.name}</span>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-400 hidden sm:inline">{session.user?.name}</span>
+            <LogoutButton />
+          </div>
         </header>
 
         {/* Mobile nav (horizontal scroll) */}

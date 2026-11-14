@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import Link from "next/link";
 import { PawPrint, ScanLine, Package, LayoutDashboard } from "lucide-react";
+import { LogoutButton } from "@/components/auth/logout-button";
 
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
@@ -21,7 +22,8 @@ export default async function StaffLayout({ children }: { children: React.ReactN
           <span className="font-semibold">Staff Portal</span>
         </div>
         <div className="flex items-center gap-3 text-sm">
-          <span className="opacity-80">{session.user?.name}</span>
+          <span className="opacity-80 hidden sm:inline">{session.user?.name}</span>
+          <LogoutButton />
         </div>
       </header>
 

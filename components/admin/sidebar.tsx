@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 import {
   LayoutDashboard, Users, ClipboardList, Package, BarChart3,
-  ScanLine, Settings, PawPrint
+  ScanLine, Settings, PawPrint, LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -58,10 +59,18 @@ export function AdminSidebar() {
         })}
       </nav>
 
-      <div className="p-3 border-t border-gray-700">
+      <div className="p-3 border-t border-gray-700 space-y-1">
         <Link href="/" className="flex items-center gap-2 text-xs text-gray-400 hover:text-white px-3 py-2">
           ← กลับหน้าหลัก
         </Link>
+        <button
+          type="button"
+          onClick={() => signOut({ callbackUrl: "/" })}
+          className="w-full flex items-center gap-2 text-xs text-red-400 hover:text-red-300 hover:bg-gray-800 rounded-md px-3 py-2 transition-colors"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          ออกจากระบบ
+        </button>
       </div>
     </aside>
   );
