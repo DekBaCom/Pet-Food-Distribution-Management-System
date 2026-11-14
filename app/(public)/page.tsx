@@ -1,10 +1,18 @@
 import Link from "next/link";
 import {
   ClipboardList, QrCode, ScanLine, CheckCircle2, Package, BarChart3,
-  MapPin, Clock, Calendar, ChevronRight, PawPrint, Heart
+  MapPin, Clock, Calendar, ChevronRight, PawPrint, Heart, ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { prisma } from "@/lib/db";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+function formatThaiDate(d: Date): string {
+  return d.toLocaleDateString("th-TH", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+}
 
 const features = [
   { icon: ClipboardList, title: "ลงทะเบียนออนไลน์", desc: "กรอกข้อมูลสัตว์และผู้ดูแล พร้อม Upload รูปภาพ", color: "bg-blue-100 text-blue-600" },
@@ -22,7 +30,19 @@ const steps = [
   { step: "4", title: "รับอาหาร", desc: "เจ้าหน้าที่ Scan และแจกอาหาร" },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const upcoming = (await prisma.event.findMany({
+    where: { isActive: true, eventDate: { gte: today } },
+    orderBy: { eventDate: "asc" },
+    take: 3,
+  })) as unknown as Array<{
+    id: string; name: string; description: string | null;
+    eventDate: Date; startTime: string; endTime: string;
+    location: string; province: string | null; mapUrl: string | null;
+  }>;
+
   return (
     <>
       {/* Hero Section */}
@@ -64,39 +84,62 @@ export default function HomePage() {
         <div className="absolute top-1/2 left-4 opacity-5 text-5xl select-none">🐾</div>
       </section>
 
-      {/* Event Info Cards */}
+      {/* Upcoming Events */}
       <section className="py-10 bg-white">
         <div className="container">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-            <Card className="text-center border-blue-100">
-              <CardContent className="pt-6 pb-4">
-                <Calendar className="h-6 w-6 text-blue-500 mx-auto mb-2" />
-                <div className="text-xs text-muted-foreground">วันแจกอาหาร</div>
-                <div className="font-semibold text-sm mt-1">22 พฤศจิกายน 2026</div>
-              </CardContent>
-            </Card>
-            <Card className="text-center border-green-100">
-              <CardContent className="pt-6 pb-4">
-                <Clock className="h-6 w-6 text-green-500 mx-auto mb-2" />
-                <div className="text-xs text-muted-foreground">เวลา</div>
-                <div className="font-semibold text-sm mt-1">09:00 - 16:00 น.</div>
-              </CardContent>
-            </Card>
-            <Card className="text-center border-purple-100">
-              <CardContent className="pt-6 pb-4">
-                <MapPin className="h-6 w-6 text-purple-500 mx-auto mb-2" />
-                <div className="text-xs text-muted-foreground">สถานที่</div>
-                <div className="font-semibold text-sm mt-1">ศูนย์ชุมชนกรุงเทพฯ</div>
-              </CardContent>
-            </Card>
-            <Card className="text-center border-orange-100">
-              <CardContent className="pt-6 pb-4">
-                <Package className="h-6 w-6 text-orange-500 mx-auto mb-2" />
-                <div className="text-xs text-muted-foreground">อาหารรวม</div>
-                <div className="font-semibold text-sm mt-1">5,000+ KG</div>
-              </CardContent>
-            </Card>
+          <div className="text-center mb-6">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">งานที่กำลังจะมาถึง</h2>
+            <p className="text-sm text-muted-foreground">กิจกรรมแจกอาหารที่กำหนดไว้ล่วงหน้า</p>
           </div>
+          {upcoming.length === 0 ? (
+            <div className="max-w-xl mx-auto text-center p-8 border border-dashed rounded-lg text-muted-foreground">
+              <Calendar className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+              <p className="font-medium">ยังไม่มีงานที่กำหนด</p>
+              <p className="text-sm mt-1">โปรดติดตามข่าวสารการจัดกิจกรรมครั้งถัดไป</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-5xl mx-auto">
+              {upcoming.map((e) => (
+                <Card key={e.id} className="border-blue-100 hover:shadow-md transition-shadow">
+                  <CardContent className="pt-5 pb-5 space-y-3">
+                    <div className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 rounded-full px-2.5 py-1 text-xs font-medium">
+                      <Calendar className="h-3.5 w-3.5" />
+                      {formatThaiDate(new Date(e.eventDate))}
+                    </div>
+                    <h3 className="font-bold text-gray-900 text-base leading-snug">{e.name}</h3>
+                    {e.description && <p className="text-xs text-muted-foreground line-clamp-2">{e.description}</p>}
+                    <div className="space-y-1.5 text-sm">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Clock className="h-4 w-4 flex-shrink-0" />
+                        <span>{e.startTime} - {e.endTime} น.</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-muted-foreground">
+                        <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                        <span className="leading-tight">{e.location}{e.province ? ` · ${e.province}` : ""}</span>
+                      </div>
+                    </div>
+                    {e.mapUrl && (
+                      <a
+                        href={e.mapUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" /> เปิดใน Google Maps
+                      </a>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+          {upcoming.length > 0 && (
+            <div className="text-center mt-6">
+              <Link href="/event" className="text-sm text-blue-600 hover:underline inline-flex items-center gap-1">
+                ดูรายละเอียดกิจกรรมทั้งหมด <ChevronRight className="h-4 w-4" />
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 
