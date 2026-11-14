@@ -1,0 +1,211 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  name          String?
+  email         String         @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          String         @default("VIEWER")
+  staffCode     String?        @unique
+  isActive      Boolean        @default(true)
+  accounts      Account[]
+  sessions      Session[]
+  checkins      Checkin[]
+  distributions Distribution[]
+  auditLogs     AuditLog[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Event {
+  id            String         @id @default(cuid())
+  name          String
+  description   String?
+  eventDate     DateTime
+  startTime     String
+  endTime       String
+  location      String
+  province      String?
+  isActive      Boolean        @default(true)
+  registrations Registration[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Registration {
+  id             String         @id @default(cuid())
+  registrationId String         @unique
+  secureToken    String         @unique
+  fullName       String
+  phone          String
+  lineId         String?
+  province       String
+  district       String?
+  receiverType   String
+  status         String         @default("REGISTERED")
+  notes          String?
+  eventId        String?
+  event          Event?         @relation(fields: [eventId], references: [id])
+  animals        Animal[]
+  foodRequests   FoodRequest[]
+  documents      Document[]
+  qrCode         QRCode?
+  checkin        Checkin?
+  distributions  Distribution[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model Animal {
+  id             String       @id @default(cuid())
+  registrationId String
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  animalType     String
+  total          Int          @default(0)
+  young          Int          @default(0)
+  adult          Int          @default(0)
+  senior         Int          @default(0)
+  special        Int          @default(0)
+}
+
+model FoodRequest {
+  id             String       @id @default(cuid())
+  registrationId String
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  foodType       String
+  requestedQty   Int          @default(0)
+  unit           String       @default("KG")
+}
+
+model Document {
+  id             String       @id @default(cuid())
+  registrationId String
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  documentType   String
+  fileUrl        String
+  fileName       String
+  fileSize       Int?
+  mimeType       String?
+  uploadedAt     DateTime     @default(now())
+}
+
+model QRCode {
+  id             String       @id @default(cuid())
+  registrationId String       @unique
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  qrData         String       @unique
+  isActive       Boolean      @default(true)
+  expiresAt      DateTime?
+  createdAt      DateTime     @default(now())
+}
+
+model Checkin {
+  id             String       @id @default(cuid())
+  registrationId String       @unique
+  registration   Registration @relation(fields: [registrationId], references: [id])
+  staffId        String
+  staff          User         @relation(fields: [staffId], references: [id])
+  checkinTime    DateTime     @default(now())
+  location       String?
+  status         String       @default("CHECKED_IN")
+  overrideById   String?
+  overrideReason String?
+  overrideAt     DateTime?
+}
+
+model Distribution {
+  id              String       @id @default(cuid())
+  registrationId  String
+  registration    Registration @relation(fields: [registrationId], references: [id])
+  distributedById String
+  distributedBy   User         @relation(fields: [distributedById], references: [id])
+  foodType        String
+  quantity        Float
+  unit            String       @default("KG")
+  distributedAt   DateTime     @default(now())
+  notes           String?
+}
+
+model Inventory {
+  id           String                 @id @default(cuid())
+  foodType     String                 @unique
+  foodName     String
+  unit         String                 @default("KG")
+  openingStock Float                  @default(0)
+  received     Float                  @default(0)
+  distributed  Float                  @default(0)
+  remaining    Float                  @default(0)
+  minStock     Float                  @default(0)
+  transactions InventoryTransaction[]
+  updatedAt    DateTime               @updatedAt
+}
+
+model InventoryTransaction {
+  id          String    @id @default(cuid())
+  inventoryId String
+  inventory   Inventory @relation(fields: [inventoryId], references: [id])
+  type        String
+  quantity    Float
+  unit        String
+  reference   String?
+  notes       String?
+  createdById String?
+  createdAt   DateTime  @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String?
+  oldData   String?
+  newData   String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+}
