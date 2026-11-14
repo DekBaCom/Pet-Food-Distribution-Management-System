@@ -26,5 +26,9 @@ migrations_dir = "./prisma/migrations"
 binding = "UPLOADS"
 bucket_name = "pet-food-uploads"
 
+[[routes]]
+pattern = "pet-food.ilikeit.info"
+custom_domain = true
+
 [vars]
-NEXTAUTH_URL = "https://pet-food-distribution-system.abdulloh-eg.workers.dev"
+NEXTAUTH_URL = "https://pet-food.ilikeit.info"
