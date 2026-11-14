@@ -50,10 +50,22 @@ export async function POST(req: NextRequest) {
     if (!dataStr) return NextResponse.json({ error: "Missing data" }, { status: 400 });
 
     const data = JSON.parse(dataStr);
-    const { fullName, phone, lineId, province, district, receiverType, dogs, cats, foodRequests } = data;
+    const { eventId, fullName, phone, lineId, province, district, receiverType, dogs, cats, foodRequests } = data;
 
     if (!fullName || !phone || !province || !receiverType) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    // If the client picked an event, verify it exists and is still open before accepting.
+    let resolvedEventId: string | null = null;
+    if (eventId) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const event = await prisma.event.findUnique({ where: { id: String(eventId) } });
+      if (!event || !event.isActive || new Date(event.eventDate) < today) {
+        return NextResponse.json({ error: "กิจกรรมที่เลือกไม่พร้อมรับลงทะเบียนแล้ว" }, { status: 400 });
+      }
+      resolvedEventId = event.id;
     }
 
     // Generate registration ID
@@ -92,6 +104,7 @@ export async function POST(req: NextRequest) {
         district: district?.trim() || null,
         receiverType,
         status: "REGISTERED",
+        eventId: resolvedEventId,
         animals: {
           create: [
             ...(dogs?.total > 0 ? [{ animalType: "DOG", total: dogs.total, young: dogs.young || 0, adult: dogs.adult || 0, senior: dogs.senior || 0, special: dogs.special || 0 }] : []),

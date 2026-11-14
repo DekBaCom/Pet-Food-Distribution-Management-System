@@ -49,6 +49,7 @@ export interface FoodRequestData {
 }
 
 export interface RegistrationFormData {
+  eventId: string;
   fullName: string;
   phone: string;
   lineId: string;

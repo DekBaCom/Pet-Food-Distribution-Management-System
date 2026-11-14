@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
 import {
   User, Dog, Package, Image, CheckCircle2, ArrowLeft, ArrowRight,
-  Info, Upload, X
+  Info, Upload, X, Calendar, MapPin
 } from "lucide-react";
 import {
   RECEIVER_TYPES, FOOD_TYPES_CONFIG, PROVINCES, type RegistrationFormData,
@@ -33,6 +33,7 @@ const STEPS = [
 const defaultAnimalData: AnimalData = { total: 0, young: 0, adult: 0, senior: 0, special: 0 };
 
 const initialForm: RegistrationFormData = {
+  eventId: "",
   fullName: "",
   phone: "",
   lineId: "",
@@ -45,6 +46,20 @@ const initialForm: RegistrationFormData = {
   consentPDPA: false,
   consentTruth: false,
 };
+
+type UpcomingEvent = {
+  id: string;
+  name: string;
+  eventDate: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+  province: string | null;
+};
+
+function formatThaiDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("th-TH", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+}
 
 function AnimalSection({
   title, emoji, data, onChange,
@@ -100,6 +115,22 @@ export default function RegisterPage() {
   const [photos, setPhotos] = useState<{ profile?: File; animals: File[]; docs: File[] }>({ animals: [], docs: [] });
   const [photoPreviews, setPhotoPreviews] = useState<{ profile?: string; animals: string[] }>({ animals: [] });
   const [submitting, setSubmitting] = useState(false);
+  const [events, setEvents] = useState<UpcomingEvent[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/events?upcoming=true&active=true");
+        const data = await res.json();
+        const list: UpcomingEvent[] = data.events || [];
+        setEvents(list);
+        if (list.length === 1) setForm((f) => ({ ...f, eventId: list[0].id }));
+      } finally {
+        setEventsLoading(false);
+      }
+    })();
+  }, []);
 
   const totalAnimals = form.dogs.total + form.cats.total;
   const progress = (step / STEPS.length) * 100;
@@ -107,6 +138,7 @@ export default function RegisterPage() {
   const validateStep = (): boolean => {
     const e: Record<string, string> = {};
     if (step === 1) {
+      if (!form.eventId) e.eventId = "กรุณาเลือกกิจกรรมที่ต้องการลงทะเบียน";
       if (!form.fullName.trim()) e.fullName = "กรุณากรอกชื่อ-นามสกุล";
       if (!form.phone.trim()) e.phone = "กรุณากรอกเบอร์โทรศัพท์";
       else if (!/^[0-9]{9,10}$/.test(form.phone.replace(/[-\s]/g, ""))) e.phone = "เบอร์โทรศัพท์ไม่ถูกต้อง";
@@ -236,6 +268,52 @@ export default function RegisterPage() {
             <CardTitle className="flex items-center gap-2"><User className="h-5 w-5" /> ข้อมูลผู้ลงทะเบียน</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div>
+              <Label>เลือกกิจกรรม <span className="text-red-500">*</span></Label>
+              {eventsLoading ? (
+                <div className="mt-2 p-3 border rounded-lg text-sm text-muted-foreground">กำลังโหลดกิจกรรม...</div>
+              ) : events.length === 0 ? (
+                <Alert variant="destructive" className="mt-2">
+                  <AlertDescription>ขณะนี้ยังไม่มีกิจกรรมเปิดลงทะเบียน โปรดติดตามข่าวสารครั้งถัดไป</AlertDescription>
+                </Alert>
+              ) : events.length === 1 ? (
+                <div className="mt-2 p-3 border-2 border-primary bg-blue-50 rounded-lg">
+                  <div className="font-semibold text-sm">{events[0].name}</div>
+                  <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                    <span className="inline-flex items-center gap-1"><Calendar className="h-3 w-3" />{formatThaiDate(events[0].eventDate)} · {events[0].startTime}-{events[0].endTime}</span>
+                    <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{events[0].location}{events[0].province ? ` · ${events[0].province}` : ""}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-2 space-y-2">
+                  {events.map((ev) => (
+                    <label
+                      key={ev.id}
+                      className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                        form.eventId === ev.id ? "border-primary bg-blue-50" : "border-gray-200 hover:bg-gray-50"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="eventId"
+                        value={ev.id}
+                        checked={form.eventId === ev.id}
+                        onChange={() => setForm((f) => ({ ...f, eventId: ev.id }))}
+                        className="accent-primary mt-1"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-sm">{ev.name}</div>
+                        <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                          <div className="inline-flex items-center gap-1"><Calendar className="h-3 w-3" />{formatThaiDate(ev.eventDate)} · {ev.startTime}-{ev.endTime}</div>
+                          <div className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{ev.location}{ev.province ? ` · ${ev.province}` : ""}</div>
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+              {errors.eventId && <p className="text-red-500 text-xs mt-1">{errors.eventId}</p>}
+            </div>
             <div>
               <Label htmlFor="fullName">ชื่อ-นามสกุล <span className="text-red-500">*</span></Label>
               <Input
@@ -482,6 +560,18 @@ export default function RegisterPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+              {(() => {
+                const ev = events.find((e) => e.id === form.eventId);
+                return ev ? (
+                  <div className="text-sm pb-3 border-b">
+                    <div className="text-muted-foreground mb-1">กิจกรรมที่เลือก</div>
+                    <div className="font-semibold">{ev.name}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {formatThaiDate(ev.eventDate)} · {ev.startTime}-{ev.endTime} · {ev.location}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
                   <div className="text-muted-foreground">ชื่อ-นามสกุล</div>

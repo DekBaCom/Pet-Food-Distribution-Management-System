@@ -39,7 +39,7 @@ export function Footer() {
           </div>
         </div>
         <div className="mt-8 border-t pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} ระบบแจกอาหารหมาแมว. สงวนลิขสิทธิ์</p>
+          <p>© {new Date().getFullYear()} ระบบแจกอาหารหมาแมว. สงวนลิขสิทธิ์ โดย Mr.Abdulloh Etaeluengoh</p>
           <p className="flex items-center gap-1">
             สร้างด้วย <Heart className="h-3 w-3 text-pink-500 fill-pink-500" /> เพื่อน้องหมาและน้องแมว
           </p>
