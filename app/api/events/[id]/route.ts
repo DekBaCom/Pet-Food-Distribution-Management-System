@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { normalizeMapUrl } from "@/lib/map";
 
 const ADMIN_ROLES = new Set(["SUPER_ADMIN", "ADMIN"]);
 
@@ -35,6 +36,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
   if ("endTime" in body) data.endTime = String(body.endTime);
   if ("location" in body) data.location = String(body.location).trim();
   if ("province" in body) data.province = body.province ? String(body.province).trim() : null;
+  if ("mapUrl" in body) data.mapUrl = body.mapUrl ? normalizeMapUrl(String(body.mapUrl)) : null;
   if ("isActive" in body) data.isActive = Boolean(body.isActive);
 
   const event = await prisma.event.update({ where: { id }, data });

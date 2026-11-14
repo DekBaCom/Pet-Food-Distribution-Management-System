@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { normalizeMapUrl } from "@/lib/map";
 
 const ADMIN_ROLES = new Set(["SUPER_ADMIN", "ADMIN"]);
 
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
   if (!ADMIN_ROLES.has(role || "")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
-  const { name, description, eventDate, startTime, endTime, location, province, isActive } = body;
+  const { name, description, eventDate, startTime, endTime, location, province, mapUrl, isActive } = body;
 
   if (!name || !eventDate || !startTime || !endTime || !location) {
     return NextResponse.json({ error: "กรุณากรอกข้อมูลให้ครบ" }, { status: 400 });
@@ -52,6 +53,7 @@ export async function POST(req: NextRequest) {
       endTime: String(endTime),
       location: String(location).trim(),
       province: province ? String(province).trim() : null,
+      mapUrl: mapUrl ? normalizeMapUrl(mapUrl) : null,
       isActive: isActive !== false,
     },
   });

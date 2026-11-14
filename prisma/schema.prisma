@@ -70,6 +70,7 @@ model Event {
   endTime       String
   location      String
   province      String?
+  mapUrl        String?
   isActive      Boolean        @default(true)
   registrations Registration[]
   createdAt     DateTime       @default(now())

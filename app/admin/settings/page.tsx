@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Calendar, MapPin, Plus, Pencil, Trash2, Save, X, CheckCircle2, CircleOff } from "lucide-react";
+import { Settings, Calendar, MapPin, Plus, Pencil, Trash2, Save, X, CheckCircle2, CircleOff, ExternalLink } from "lucide-react";
+import { normalizeMapUrl, toEmbedSrc } from "@/lib/map";
 
 type EventItem = {
   id: string;
@@ -16,6 +17,7 @@ type EventItem = {
   endTime: string;
   location: string;
   province: string | null;
+  mapUrl: string | null;
   isActive: boolean;
 };
 
@@ -28,6 +30,7 @@ type FormState = {
   endTime: string;
   location: string;
   province: string;
+  mapUrl: string;
   isActive: boolean;
 };
 
@@ -39,6 +42,7 @@ const EMPTY_FORM: FormState = {
   endTime: "16:00",
   location: "",
   province: "",
+  mapUrl: "",
   isActive: true,
 };
 
@@ -93,6 +97,7 @@ export default function AdminSettingsPage() {
       endTime: e.endTime,
       location: e.location,
       province: e.province ?? "",
+      mapUrl: e.mapUrl ?? "",
       isActive: e.isActive,
     });
     setError(null);
@@ -207,6 +212,19 @@ export default function AdminSettingsPage() {
                   <Input id="province" value={form.province} onChange={(e) => setForm({ ...form, province: e.target.value })} placeholder="เช่น กรุงเทพมหานคร" />
                 </div>
               </div>
+              <div>
+                <Label htmlFor="mapUrl">Google Maps</Label>
+                <Input
+                  id="mapUrl"
+                  value={form.mapUrl}
+                  onChange={(e) => setForm({ ...form, mapUrl: e.target.value })}
+                  placeholder="วางลิงก์ Google Maps หรือโค้ด <iframe src=...>"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  เปิด Google Maps → กด <b>Share</b> → <b>Embed a map</b> → Copy HTML → วางที่นี่ (หรือวางลิงก์ธรรมดาก็ได้ แต่ถ้าเป็น embed จะโชว์แผนที่ในหน้าได้)
+                </p>
+                <MapPreview url={form.mapUrl} />
+              </div>
               <div className="flex items-center gap-2">
                 <input id="isActive" type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} className="h-4 w-4" />
                 <Label htmlFor="isActive" className="cursor-pointer">เปิดใช้งาน (แสดงต่อสาธารณะ)</Label>
@@ -241,6 +259,32 @@ export default function AdminSettingsPage() {
             </CardContent>
           </Card>
         </>
+      )}
+    </div>
+  );
+}
+
+function MapPreview({ url }: { url: string }) {
+  const normalized = normalizeMapUrl(url);
+  const embed = toEmbedSrc(normalized);
+  if (!normalized) return null;
+  return (
+    <div className="mt-2 rounded-md border overflow-hidden bg-gray-50">
+      {embed ? (
+        <iframe
+          src={embed}
+          width="100%"
+          height="220"
+          style={{ border: 0 }}
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+          title="Map preview"
+        />
+      ) : (
+        <div className="p-3 text-xs">
+          <p className="text-muted-foreground mb-1">{`ลิงก์นี้ไม่ใช่ embed URL — หน้าเว็บจะแสดงเป็นลิงก์คลิกเท่านั้น (ถ้าต้องการให้แสดงแผนที่ในหน้า ใช้ "Embed a map" จาก Share menu ของ Google Maps)`}</p>
+          <a href={normalized} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">{normalized}</a>
+        </div>
       )}
     </div>
   );
@@ -293,6 +337,11 @@ function EventSection({
                         เวลา {e.startTime} - {e.endTime}
                       </div>
                       <div className="flex items-start gap-2"><MapPin className="h-4 w-4 text-muted-foreground mt-0.5" /> <span>{e.location}{e.province ? ` · ${e.province}` : ""}</span></div>
+                      {e.mapUrl && (
+                        <a href={e.mapUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline inline-flex items-center gap-1 ml-6">
+                          <ExternalLink className="h-3 w-3" /> เปิดใน Google Maps
+                        </a>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-2">

@@ -1,8 +1,9 @@
-import { Calendar, Clock, MapPin, Package, Info } from "lucide-react";
+import { Calendar, Clock, MapPin, Package, Info, ExternalLink } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/db";
+import { toEmbedSrc } from "@/lib/map";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -24,7 +25,7 @@ export default async function EventPage() {
   })) as unknown as Array<{
     id: string; name: string; description: string | null;
     eventDate: Date; startTime: string; endTime: string;
-    location: string; province: string | null;
+    location: string; province: string | null; mapUrl: string | null;
   }>;
 
   const inventory = (await prisma.inventory.findMany({ orderBy: { foodType: "asc" } })) as unknown as Array<{
@@ -72,12 +73,35 @@ export default async function EventPage() {
                 </div>
                 <div className="flex items-start gap-3">
                   <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
+                  <div className="flex-1">
                     <div className="font-medium">สถานที่</div>
                     <div className="text-muted-foreground">{e.location}</div>
                     {e.province && <div className="text-sm text-muted-foreground">{e.province}</div>}
+                    {e.mapUrl && (
+                      <a
+                        href={e.mapUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 mt-2 text-sm text-blue-600 hover:underline"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" /> เปิดใน Google Maps
+                      </a>
+                    )}
                   </div>
                 </div>
+                {toEmbedSrc(e.mapUrl) && (
+                  <div className="rounded-lg overflow-hidden border">
+                    <iframe
+                      src={toEmbedSrc(e.mapUrl)!}
+                      width="100%"
+                      height="300"
+                      style={{ border: 0 }}
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      title={`แผนที่ ${e.name}`}
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
